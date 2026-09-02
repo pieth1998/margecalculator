@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Margecalc">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#B5A062">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Margecalculator | DH Feelgoodtimer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background: #1A1A1A;
+    color: #F2F0EA;
+    padding: 24px 16px 60px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    position: relative;
+  }
+  .columns::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: #3A3A3A;
+  }
+  .column {
+    min-width: 0;
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .column.is-marge {
+    background: #201D16;
+    border: 1px solid #4A4022;
+    margin-right: 14px;
+  }
+  .column.is-btw {
+    background: #15191D;
+    border: 1px solid #2C3A47;
+    margin-left: 14px;
+  }
+  .column-header {
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .column.is-marge .column-header { border-bottom: 2px solid #B5A062; }
+  .column.is-btw .column-header { border-bottom: 2px solid #6B8CAE; }
+  .column-header .tag {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .column.is-marge .tag { background: #B5A062; }
+  .column.is-btw .tag { background: #6B8CAE; }
+  .column-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .column.is-marge .column-header h2 { color: #B5A062; }
+  .column.is-btw .column-header h2 { color: #6B8CAE; }
+  .reset-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #4A4022;
+    border-radius: 6px;
+    color: #999690;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .column.is-btw .reset-btn { border-color: #2C3A47; }
+  .reset-btn:hover { color: #F2F0EA; }
+  .column.is-marge .reset-btn:hover { border-color: #B5A062; }
+  .column.is-btw .reset-btn:hover { border-color: #6B8CAE; }
+  .reset-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .error-box {
+    display: none;
+    background: rgba(212, 130, 60, 0.12);
+    border: 1px solid #D4823C;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #E8A972;
+    margin-top: 4px;
+  }
+  .error-box.visible { display: block; }
+  @media (max-width: 760px) {
+    .columns { grid-template-columns: 1fr; gap: 28px; }
+    .columns::after { display: none; }
+    .column.is-marge { margin-right: 0; }
+    .column.is-btw { margin-left: 0; }
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #3A3A3A;
+  }
+  header img { height: 48px; width: auto; }
+  header .titles h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #F2F0EA;
+  }
+  header .titles p {
+    font-size: 12px;
+    color: #B5A062;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 12px;
+    color: #999690;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .amount-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .amount-input span {
+    position: absolute;
+    left: 12px;
+    color: #999690;
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .amount-input input[type="number"] {
+    padding-left: 28px;
+  }
+  input[type="number"], input[type="text"], select {
+    background: #242424;
+    border: 1px solid #3A3A3A;
+    border-radius: 6px;
+    color: #F2F0EA;
+    font-size: 15px;
+    padding: 10px 12px;
+    width: 100%;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .note-field {
+    margin-bottom: 20px;
+  }
+  .note-field input[type="text"]::placeholder {
+    color: #6B6862;
+  }
+  .column.is-marge .note-field input[type="text"]:focus { border-color: #B5A062; }
+  .column.is-btw .note-field input[type="text"]:focus { border-color: #6B8CAE; }
+  select {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%23B5A062"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 28px;
+    text-overflow: ellipsis;
+  }
+  .column.is-btw select {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%236B8CAE"/></svg>');
+  }
+  @media (min-width: 761px) and (max-width: 1180px) {
+    select { font-size: 13px; padding-left: 8px; }
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #B5A062;
+  }
+  .column.is-btw input:focus, .column.is-btw select:focus {
+    border-color: #6B8CAE;
+  }
+  .static-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 2px;
+    border-top: 1px solid #2C2C2C;
+    font-size: 13px;
+    color: #999690;
+  }
+  .static-row span:last-child { color: #F2F0EA; font-weight: 600; }
+  .divider { height: 1px; background: #3A3A3A; margin: 24px 0 18px; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    background: #242424;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .column.is-marge .stat-card { background: #2A2418; }
+  .column.is-btw .stat-card { background: #1C2228; }
+  .stat-card p:first-child {
+    font-size: 12px;
+    color: #999690;
+    margin-bottom: 4px;
+  }
+  .stat-card p:last-child {
+    font-size: 20px;
+    font-weight: 700;
+    color: #F2F0EA;
+  }
+  .stat-card.danger p:last-child { color: #D4823C; }
+  .netto-banner {
+    background: #B5A062;
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .column.is-btw .netto-banner { background: #6B8CAE; }
+  .netto-banner span:first-child {
+    font-size: 13px;
+    color: #1A1A1A;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .netto-banner span:last-child {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1A1A1A;
+  }
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .scenario-card {
+    background: #242424;
+    border: 1px solid #3A3A3A;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .column.is-marge .scenario-card { background: #2A2418; border-color: #4A4022; }
+  .column.is-btw .scenario-card { background: #1C2228; border-color: #2C3A47; }
+  .scenario-card .scen-title {
+    font-size: 12px;
+    color: #B5A062;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .column.is-btw .scenario-card .scen-title { color: #6B8CAE; }
+  .scen-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 13px;
+    color: #999690;
+  }
+  .scen-row span:last-child { color: #F2F0EA; }
+  .scen-row.danger span:last-child { color: #D4823C; }
+  .scen-netto {
+    border-top: 1px solid #3A3A3A;
+    margin-top: 8px;
+    padding-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .scen-netto span:first-child { font-size: 13px; color: #F2F0EA; }
+  .scen-netto span:last-child { font-size: 18px; font-weight: 700; color: #B5A062; }
+  .column.is-btw .scen-netto span:last-child { color: #6B8CAE; }
+  .verschil-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 4px 0;
+    font-size: 13px;
+    color: #999690;
+  }
+  .verschil-row span:last-child { color: #B5A062; font-weight: 700; }
+  .column.is-btw .verschil-row span:last-child { color: #6B8CAE; }
+  footer {
+    text-align: center;
+    margin-top: 36px;
+    font-size: 11px;
+    color: #5A5A5A;
+    letter-spacing: 0.3px;
+  }
+  @media (max-width: 480px) {
+    html { scroll-snap-type: y proximity; }
+    body { padding: 0; }
+    .wrap { padding: 10px 8px 16px; }
+    header { margin-bottom: 12px; padding-bottom: 10px; gap: 8px; }
+    header img { height: 32px; }
+    header .titles h1 { font-size: 15px; }
+    header .titles p { font-size: 9px; }
+    .columns { display: flex; flex-direction: column; gap: 14px; }
+    .column {
+      scroll-snap-align: start;
+      scroll-margin-top: 8px;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      min-height: calc(var(--vh, 1vh) * 100 - 18px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 12px 12px;
+      border-radius: 12px;
+    }
+    .column.is-marge, .column.is-btw { margin: 0; }
+    .column-header { margin-bottom: 8px; padding-bottom: 6px; }
+    .column-header h2 { font-size: 12px; }
+    .reset-btn { font-size: 10px; padding: 4px 8px; }
+    .reset-btn svg { width: 11px; height: 11px; }
+    .field label { font-size: 10px; }
+    .grid { gap: 6px; margin-bottom: 9px; }
+    .note-field { margin-bottom: 9px; }
+    input[type="number"], input[type="text"], select { font-size: 13px; padding: 6px 8px; }
+    .amount-input input[type="number"] { padding-left: 20px; }
+    .amount-input span { left: 8px; font-size: 13px; }
+    select { padding-right: 22px; background-position: right 8px center; }
+    .static-row { font-size: 11px; padding: 4px 1px; }
+    .divider { margin: 10px 0 8px; }
+    .stats { gap: 6px; margin-bottom: 7px; }
+    .stat-card { padding: 7px 9px; border-radius: 7px; }
+    .stat-card p:first-child { font-size: 9px; margin-bottom: 2px; }
+    .stat-card p:last-child { font-size: 13px; }
+    .netto-banner { padding: 9px 12px; border-radius: 8px; }
+    .netto-banner span:first-child { font-size: 10px; }
+    .netto-banner span:last-child { font-size: 17px; }
+    .scenario-grid { gap: 6px; }
+    .scenario-card { padding: 8px 9px; border-radius: 8px; }
+    .scenario-card .scen-title { font-size: 9px; margin-bottom: 4px; }
+    .scen-row { font-size: 10px; padding: 1px 0; }
+    .scen-netto { margin-top: 5px; padding-top: 5px; }
+    .scen-netto span:first-child { font-size: 10px; }
+    .scen-netto span:last-child { font-size: 13px; }
+    .verschil-row { font-size: 10px; padding: 7px 1px 0; }
+    .error-box { font-size: 11px; padding: 8px 10px; }
+    footer { display: none; }
+    .scroll-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 10px;
+      color: #6B6862;
+      padding-top: 16px;
+      letter-spacing: 0.2px;
+    }
+    .scroll-hint svg { width: 12px; height: 12px; animation: bounce 1.6s ease-in-out infinite; }
+    .column.is-btw .scroll-hint { display: none; }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(3px); }
+    }
+  }
+  @media (min-width: 481px) {
+    .scroll-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="data:image/png;base64,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" alt="DH Feelgoodtimer logo">
+    <div class="titles">
+      <h1>Margecalculator</h1>
+      <p>DH Feelgoodtimer</p>
+    </div>
+  </header>
+
+  <div class="columns">
+    <div class="column is-marge">
+      <div class="column-header">
+        <span class="tag"></span><h2>Marge-auto&apos;s</h2>
+        <button type="button" class="reset-btn" id="m-reset-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Reset
+        </button>
+      </div>
+
+      <div class="field note-field">
+        <label for="m-notitie">Notitie</label>
+        <input type="text" id="m-notitie" placeholder="Bijv. Kia Niro Frankfurt 22.900">
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="m-inkoop">Inkoopprijs</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="m-inkoop" step="50"></div>
+        </div>
+        <div class="field">
+          <label for="m-verkoop">Verkoopprijs</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="m-verkoop" step="50"></div>
+        </div>
+        <div class="field">
+          <label for="m-transport">Transportkosten (excl. btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="m-transport" step="10"></div>
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label for="m-brandstof">Brandstoftype</label>
+          <select id="m-brandstof">
+            <option value="" selected>&mdash; Kies brandstoftype &mdash;</option>
+            <option value="700">Benzine / hybride (&euro;700 RDW, taxatie)</option>
+            <option value="560">Plug-in hybride / elektrisch (&euro;560 RDW)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="m-schade">Schadeherstel (excl. btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="m-schade" step="10"></div>
+        </div>
+      </div>
+
+      <div class="field" id="m-bpm-enkel" style="display:none; margin-bottom: 16px;">
+        <label for="m-bpm-single">BPM</label>
+        <div class="amount-input"><span>&euro;</span><input type="number" id="m-bpm-single" step="50"></div>
+      </div>
+
+      <div id="m-bpm-dubbel" style="margin-bottom: 16px;">
+        <label style="font-size:12px; color:#999690; font-weight:600; display:block; margin-bottom:8px;">BPM &mdash; twee scenario&apos;s (alleen benzine/hybride)</label>
+        <div class="grid" style="margin-bottom: 0;">
+          <div class="field">
+            <label for="m-bpm-getaxeerd">Getaxeerde BPM</label>
+            <div class="amount-input"><span>&euro;</span><input type="number" id="m-bpm-getaxeerd" step="50"></div>
+          </div>
+          <div class="field">
+            <label for="m-bpm-tabel">Tabel BPM</label>
+            <div class="amount-input"><span>&euro;</span><input type="number" id="m-bpm-tabel" step="50"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="static-row">
+        <span>RDW keuringskosten (auto)</span>
+        <span id="m-rdw-out">&euro;360</span>
+      </div>
+      <div class="static-row">
+        <span>Onvoorziene kosten (vast)</span>
+        <span>&euro;100</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="error-box" id="m-error-box">Selecteer eerst een brandstoftype om de berekening te kunnen tonen.</div>
+
+      <div id="m-enkel-resultaat">
+        <div class="stats">
+          <div class="stat-card"><p>Bruto winst</p><p id="m-bruto-out">&euro;5.000</p></div>
+          <div class="stat-card"><p>Grondslag margebelasting</p><p id="m-grondslag-out">&euro;4.000</p></div>
+          <div class="stat-card danger"><p>Margebelasting (21%)</p><p id="m-margebtw-out">&euro;694</p></div>
+          <div class="stat-card"><p>Winst v&oacute;&oacute;r kosten</p><p id="m-voorkosten-out">&euro;3.306</p></div>
+        </div>
+        <div class="netto-banner">
+          <span>Netto winst</span>
+          <span id="m-netto-out">&euro;2.296</span>
+        </div>
+      </div>
+
+      <div id="m-dubbel-resultaat" style="display:none;">
+        <div class="scenario-grid">
+          <div class="scenario-card">
+            <p class="scen-title">Getaxeerde BPM</p>
+            <div class="scen-row"><span>Bruto winst</span><span id="m-g-bruto">&euro;5.000</span></div>
+            <div class="scen-row"><span>Grondslag</span><span id="m-g-grondslag">&euro;4.150</span></div>
+            <div class="scen-row danger"><span>Margebelasting</span><span id="m-g-margebtw">&euro;720</span></div>
+            <div class="scen-row"><span>Winst v&oacute;&oacute;r kosten</span><span id="m-g-voorkosten">&euro;3.430</span></div>
+            <div class="scen-netto"><span>Netto winst</span><span id="m-g-netto">&euro;2.420</span></div>
+          </div>
+          <div class="scenario-card">
+            <p class="scen-title">Tabel BPM</p>
+            <div class="scen-row"><span>Bruto winst</span><span id="m-t-bruto">&euro;5.000</span></div>
+            <div class="scen-row"><span>Grondslag</span><span id="m-t-grondslag">&euro;4.000</span></div>
+            <div class="scen-row danger"><span>Margebelasting</span><span id="m-t-margebtw">&euro;694</span></div>
+            <div class="scen-row"><span>Winst v&oacute;&oacute;r kosten</span><span id="m-t-voorkosten">&euro;3.306</span></div>
+            <div class="scen-netto"><span>Netto winst</span><span id="m-t-netto">&euro;2.296</span></div>
+          </div>
+        </div>
+        <div class="verschil-row">
+          <span>Verschil tussen scenario&apos;s</span>
+          <span id="m-verschil-out">&euro;124</span>
+        </div>
+      </div>
+
+      <div class="scroll-hint">
+        <span>Veeg omhoog voor btw-auto&apos;s</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </div>
+    </div>
+
+    <div class="column is-btw">
+      <div class="column-header">
+        <span class="tag"></span><h2>BTW-auto&apos;s</h2>
+        <button type="button" class="reset-btn" id="b-reset-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Reset
+        </button>
+      </div>
+
+      <div class="field note-field">
+        <label for="b-notitie">Notitie</label>
+        <input type="text" id="b-notitie" placeholder="Bijv. Kia Niro Frankfurt 22.900">
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="b-inkoop">Inkoopprijs (excl. btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="b-inkoop" step="50"></div>
+        </div>
+        <div class="field">
+          <label for="b-verkoop">Verkoopprijs (incl. 21% btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="b-verkoop" step="50"></div>
+        </div>
+        <div class="field">
+          <label for="b-transport">Transportkosten (excl. btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="b-transport" step="10"></div>
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label for="b-brandstof">Brandstoftype</label>
+          <select id="b-brandstof">
+            <option value="" selected>&mdash; Kies brandstoftype &mdash;</option>
+            <option value="700">Benzine / hybride (&euro;700 RDW, taxatie)</option>
+            <option value="560">Plug-in hybride / elektrisch (&euro;560 RDW)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="b-schade">Schadeherstel (excl. btw)</label>
+          <div class="amount-input"><span>&euro;</span><input type="number" id="b-schade" step="10"></div>
+        </div>
+      </div>
+
+      <div class="field" id="b-bpm-enkel" style="display:none; margin-bottom: 16px;">
+        <label for="b-bpm-single">BPM</label>
+        <div class="amount-input"><span>&euro;</span><input type="number" id="b-bpm-single" step="50"></div>
+      </div>
+
+      <div id="b-bpm-dubbel" style="margin-bottom: 16px;">
+        <label style="font-size:12px; color:#999690; font-weight:600; display:block; margin-bottom:8px;">BPM &mdash; twee scenario&apos;s (alleen benzine/hybride)</label>
+        <div class="grid" style="margin-bottom: 0;">
+          <div class="field">
+            <label for="b-bpm-getaxeerd">Getaxeerde BPM</label>
+            <div class="amount-input"><span>&euro;</span><input type="number" id="b-bpm-getaxeerd" step="50"></div>
+          </div>
+          <div class="field">
+            <label for="b-bpm-tabel">Tabel BPM</label>
+            <div class="amount-input"><span>&euro;</span><input type="number" id="b-bpm-tabel" step="50"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="static-row">
+        <span>RDW keuringskosten (auto)</span>
+        <span id="b-rdw-out">&euro;360</span>
+      </div>
+      <div class="static-row">
+        <span>Onvoorziene kosten (vast)</span>
+        <span>&euro;100</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="error-box" id="b-error-box">Selecteer eerst een brandstoftype om de berekening te kunnen tonen.</div>
+
+      <div id="b-enkel-resultaat">
+        <div class="stats">
+          <div class="stat-card"><p>Verkoopprijs excl. bpm</p><p id="b-exclbpm-out">&euro;21.000,00</p></div>
+          <div class="stat-card"><p>Verkoopprijs excl. btw</p><p id="b-exclbtw-out">&euro;17.355,37</p></div>
+          <div class="stat-card danger"><p>Btw-bedrag (21%)</p><p id="b-btwbedrag-out">&euro;3.644,63</p></div>
+          <div class="stat-card"><p>Bruto winst v&oacute;&oacute;r kosten</p><p id="b-brutowinst-out">&euro;5.355,37</p></div>
+        </div>
+        <div class="netto-banner">
+          <span>Netto winst</span>
+          <span id="b-netto-out">&euro;4.345,37</span>
+        </div>
+      </div>
+
+      <div id="b-dubbel-resultaat" style="display:none;">
+        <div class="scenario-grid">
+          <div class="scenario-card">
+            <p class="scen-title">Getaxeerde BPM</p>
+            <div class="scen-row"><span>Verkoop excl. bpm</span><span id="b-g-exclbpm">&euro;21.150,00</span></div>
+            <div class="scen-row"><span>Verkoop excl. btw</span><span id="b-g-exclbtw">&euro;17.479,34</span></div>
+            <div class="scen-row danger"><span>Btw-bedrag</span><span id="b-g-btwbedrag">&euro;3.670,66</span></div>
+            <div class="scen-row"><span>Bruto winst v&oacute;&oacute;r kosten</span><span id="b-g-brutowinst">&euro;5.479,34</span></div>
+            <div class="scen-netto"><span>Netto winst</span><span id="b-g-netto">&euro;4.469,34</span></div>
+          </div>
+          <div class="scenario-card">
+            <p class="scen-title">Tabel BPM</p>
+            <div class="scen-row"><span>Verkoop excl. bpm</span><span id="b-t-exclbpm">&euro;21.000,00</span></div>
+            <div class="scen-row"><span>Verkoop excl. btw</span><span id="b-t-exclbtw">&euro;17.355,37</span></div>
+            <div class="scen-row danger"><span>Btw-bedrag</span><span id="b-t-btwbedrag">&euro;3.644,63</span></div>
+            <div class="scen-row"><span>Bruto winst v&oacute;&oacute;r kosten</span><span id="b-t-brutowinst">&euro;5.355,37</span></div>
+            <div class="scen-netto"><span>Netto winst</span><span id="b-t-netto">&euro;4.345,37</span></div>
+          </div>
+        </div>
+        <div class="verschil-row">
+          <span>Verschil tussen scenario&apos;s</span>
+          <span id="b-verschil-out">&euro;124,00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>DH Feelgoodtimer &middot; Interne margecalculator</footer>
+</div>
+
+<script>
+// Safari viewport height fix
+function setVh() {
+  document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+}
+setVh();
+window.addEventListener('resize', setVh);
+</script>
+<script>
+function fmt(n) {
+  return '€' + n.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── Marge-auto's ──────────────────────────────────────────
+function margeNettoWinst(verkoop, inkoop, bpm, transport, rdw, schade) {
+  const onvoorzien = 100;
+  const bruto = verkoop - inkoop;
+  const grondslag = bruto - bpm;
+  const voorKosten = grondslag / 1.21;
+  const margeBtw = grondslag - voorKosten;
+  const netto = voorKosten - transport - rdw - schade - onvoorzien;
+  return { bruto, grondslag, voorKosten, margeBtw, netto };
+}
+
+function margeToggleBpmVelden() {
+  const waarde = document.getElementById('m-brandstof').value;
+  const isBenzineHybride = waarde === '700';
+  const isElektrisch = waarde === '560';
+  document.getElementById('m-bpm-enkel').style.display = isElektrisch ? 'flex' : 'none';
+  document.getElementById('m-bpm-dubbel').style.display = isBenzineHybride ? 'block' : 'none';
+}
+
+function margeBereken() {
+  const brandstofWaarde = document.getElementById('m-brandstof').value;
+  const errorBox = document.getElementById('m-error-box');
+  const enkelResultaat = document.getElementById('m-enkel-resultaat');
+  const dubbelResultaat = document.getElementById('m-dubbel-resultaat');
+
+  if (brandstofWaarde === '') {
+    errorBox.classList.add('visible');
+    enkelResultaat.style.display = 'none';
+    dubbelResultaat.style.display = 'none';
+    document.getElementById('m-rdw-out').textContent = '\u2014';
+    return;
+  }
+  errorBox.classList.remove('visible');
+
+  const inkoop = parseFloat(document.getElementById('m-inkoop').value) || 0;
+  const verkoop = parseFloat(document.getElementById('m-verkoop').value) || 0;
+  const transport = parseFloat(document.getElementById('m-transport').value) || 0;
+  const rdw = parseFloat(brandstofWaarde) || 0;
+  const schade = parseFloat(document.getElementById('m-schade').value) || 0;
+  const isBenzineHybride = brandstofWaarde === '700';
+
+  document.getElementById('m-rdw-out').textContent = fmt(rdw);
+
+  if (!isBenzineHybride) {
+    enkelResultaat.style.display = 'block';
+    dubbelResultaat.style.display = 'none';
+    const bpm = parseFloat(document.getElementById('m-bpm-single').value) || 0;
+    const r = margeNettoWinst(verkoop, inkoop, bpm, transport, rdw, schade);
+    document.getElementById('m-bruto-out').textContent = fmt(r.bruto);
+    document.getElementById('m-grondslag-out').textContent = fmt(r.grondslag);
+    document.getElementById('m-margebtw-out').textContent = fmt(r.margeBtw);
+    document.getElementById('m-voorkosten-out').textContent = fmt(r.voorKosten);
+    document.getElementById('m-netto-out').textContent = fmt(r.netto);
+  } else {
+    enkelResultaat.style.display = 'none';
+    dubbelResultaat.style.display = 'block';
+    const bpmG = parseFloat(document.getElementById('m-bpm-getaxeerd').value) || 0;
+    const bpmT = parseFloat(document.getElementById('m-bpm-tabel').value) || 0;
+    const g = margeNettoWinst(verkoop, inkoop, bpmG, transport, rdw, schade);
+    const t = margeNettoWinst(verkoop, inkoop, bpmT, transport, rdw, schade);
+
+    document.getElementById('m-g-bruto').textContent = fmt(g.bruto);
+    document.getElementById('m-g-grondslag').textContent = fmt(g.grondslag);
+    document.getElementById('m-g-margebtw').textContent = fmt(g.margeBtw);
+    document.getElementById('m-g-voorkosten').textContent = fmt(g.voorKosten);
+    document.getElementById('m-g-netto').textContent = fmt(g.netto);
+
+    document.getElementById('m-t-bruto').textContent = fmt(t.bruto);
+    document.getElementById('m-t-grondslag').textContent = fmt(t.grondslag);
+    document.getElementById('m-t-margebtw').textContent = fmt(t.margeBtw);
+    document.getElementById('m-t-voorkosten').textContent = fmt(t.voorKosten);
+    document.getElementById('m-t-netto').textContent = fmt(t.netto);
+
+    document.getElementById('m-verschil-out').textContent = fmt(Math.abs(g.netto - t.netto));
+  }
+}
+
+function margeReset() {
+  ['m-inkoop','m-verkoop','m-transport','m-schade','m-bpm-single','m-bpm-getaxeerd','m-bpm-tabel'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('m-notitie').value = '';
+  document.getElementById('m-brandstof').value = '';
+  margeToggleBpmVelden();
+  margeBereken();
+}
+
+['m-inkoop','m-verkoop','m-transport','m-schade','m-bpm-single','m-bpm-getaxeerd','m-bpm-tabel'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', margeBereken);
+  el.addEventListener('change', margeBereken);
+});
+document.getElementById('m-brandstof').addEventListener('change', () => { margeToggleBpmVelden(); margeBereken(); });
+document.getElementById('m-reset-btn').addEventListener('click', margeReset);
+
+margeToggleBpmVelden();
+margeBereken();
+
+// ── BTW-auto's ────────────────────────────────────────────
+function btwNettoWinst(verkoop, inkoop, bpm, transport, rdw, schade) {
+  const onvoorzien = 100;
+  const exclBpm = verkoop - bpm;
+  const exclBtw = exclBpm / 1.21;
+  const btwBedrag = exclBpm - exclBtw;
+  const brutoWinst = exclBtw - inkoop;
+  const netto = brutoWinst - transport - rdw - schade - onvoorzien;
+  return { exclBpm, exclBtw, btwBedrag, brutoWinst, netto };
+}
+
+function btwToggleBpmVelden() {
+  const waarde = document.getElementById('b-brandstof').value;
+  const isBenzineHybride = waarde === '700';
+  const isElektrisch = waarde === '560';
+  document.getElementById('b-bpm-enkel').style.display = isElektrisch ? 'flex' : 'none';
+  document.getElementById('b-bpm-dubbel').style.display = isBenzineHybride ? 'block' : 'none';
+}
+
+function btwBereken() {
+  const brandstofWaarde = document.getElementById('b-brandstof').value;
+  const errorBox = document.getElementById('b-error-box');
+  const enkelResultaat = document.getElementById('b-enkel-resultaat');
+  const dubbelResultaat = document.getElementById('b-dubbel-resultaat');
+
+  if (brandstofWaarde === '') {
+    errorBox.classList.add('visible');
+    enkelResultaat.style.display = 'none';
+    dubbelResultaat.style.display = 'none';
+    document.getElementById('b-rdw-out').textContent = '\u2014';
+    return;
+  }
+  errorBox.classList.remove('visible');
+
+  const inkoop = parseFloat(document.getElementById('b-inkoop').value) || 0;
+  const verkoop = parseFloat(document.getElementById('b-verkoop').value) || 0;
+  const transport = parseFloat(document.getElementById('b-transport').value) || 0;
+  const rdw = parseFloat(brandstofWaarde) || 0;
+  const schade = parseFloat(document.getElementById('b-schade').value) || 0;
+  const isBenzineHybride = brandstofWaarde === '700';
+
+  document.getElementById('b-rdw-out').textContent = fmt(rdw);
+
+  if (!isBenzineHybride) {
+    enkelResultaat.style.display = 'block';
+    dubbelResultaat.style.display = 'none';
+    const bpm = parseFloat(document.getElementById('b-bpm-single').value) || 0;
+    const r = btwNettoWinst(verkoop, inkoop, bpm, transport, rdw, schade);
+    document.getElementById('b-exclbpm-out').textContent = fmt(r.exclBpm);
+    document.getElementById('b-exclbtw-out').textContent = fmt(r.exclBtw);
+    document.getElementById('b-btwbedrag-out').textContent = fmt(r.btwBedrag);
+    document.getElementById('b-brutowinst-out').textContent = fmt(r.brutoWinst);
+    document.getElementById('b-netto-out').textContent = fmt(r.netto);
+  } else {
+    enkelResultaat.style.display = 'none';
+    dubbelResultaat.style.display = 'block';
+    const bpmG = parseFloat(document.getElementById('b-bpm-getaxeerd').value) || 0;
+    const bpmT = parseFloat(document.getElementById('b-bpm-tabel').value) || 0;
+    const g = btwNettoWinst(verkoop, inkoop, bpmG, transport, rdw, schade);
+    const t = btwNettoWinst(verkoop, inkoop, bpmT, transport, rdw, schade);
+
+    document.getElementById('b-g-exclbpm').textContent = fmt(g.exclBpm);
+    document.getElementById('b-g-exclbtw').textContent = fmt(g.exclBtw);
+    document.getElementById('b-g-btwbedrag').textContent = fmt(g.btwBedrag);
+    document.getElementById('b-g-brutowinst').textContent = fmt(g.brutoWinst);
+    document.getElementById('b-g-netto').textContent = fmt(g.netto);
+
+    document.getElementById('b-t-exclbpm').textContent = fmt(t.exclBpm);
+    document.getElementById('b-t-exclbtw').textContent = fmt(t.exclBtw);
+    document.getElementById('b-t-btwbedrag').textContent = fmt(t.btwBedrag);
+    document.getElementById('b-t-brutowinst').textContent = fmt(t.brutoWinst);
+    document.getElementById('b-t-netto').textContent = fmt(t.netto);
+
+    document.getElementById('b-verschil-out').textContent = fmt(Math.abs(g.netto - t.netto));
+  }
+}
+
+function btwReset() {
+  ['b-inkoop','b-verkoop','b-transport','b-schade','b-bpm-single','b-bpm-getaxeerd','b-bpm-tabel'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('b-notitie').value = '';
+  document.getElementById('b-brandstof').value = '';
+  btwToggleBpmVelden();
+  btwBereken();
+}
+
+['b-inkoop','b-verkoop','b-transport','b-schade','b-bpm-single','b-bpm-getaxeerd','b-bpm-tabel'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', btwBereken);
+  el.addEventListener('change', btwBereken);
+});
+document.getElementById('b-brandstof').addEventListener('change', () => { btwToggleBpmVelden(); btwBereken(); });
+document.getElementById('b-reset-btn').addEventListener('click', btwReset);
+
+btwToggleBpmVelden();
+btwBereken();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  });
+}
+</script>
+</body>
+</html>
